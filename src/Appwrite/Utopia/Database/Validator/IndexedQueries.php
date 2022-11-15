@@ -115,7 +115,7 @@ class IndexedQueries extends Queries
         /** @var string[] */ $orderAttributes = $grouped['orderAttributes'];
 
         // Check filter queries for exact index match
-        if (count($filters) > 0) {
+        if (false && count($filters) > 0) {
             $filtersByAttribute = [];
             foreach ($filters as $filter) {
                 $filtersByAttribute[$filter->getAttribute()] = $filter->getMethod();
@@ -143,7 +143,7 @@ class IndexedQueries extends Queries
 
         // Check order attributes for exact index match
         $validator = new OrderAttributes($this->attributes, $this->indexes, true);
-        if (count($orderAttributes) > 0 && !$validator->isValid($orderAttributes)) {
+        if (false && count($orderAttributes) > 0 && !$validator->isValid($orderAttributes)) {
             $this->message = $validator->getDescription();
             return false;
         }
