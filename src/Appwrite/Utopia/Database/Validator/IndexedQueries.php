@@ -115,7 +115,7 @@ class IndexedQueries extends Queries
         /** @var string[] */ $orderAttributes = $grouped['orderAttributes'];
 
         // Check filter queries for exact index match
-        if (count($filters) > 0) {
+        if (false && count($filters) > 0) {
             $filtersByAttribute = [];
             foreach ($filters as $filter) {
                 $filtersByAttribute[$filter->getAttribute()] = $filter->getMethod();
