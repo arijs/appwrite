@@ -14,7 +14,7 @@ version: '3'
 
 services:
   traefik:
-    image: traefik:2.7
+    image: traefik:2.9
     <<: *x-logging
     container_name: appwrite-traefik
     command:
@@ -39,6 +39,7 @@ services:
       - appwrite-certificates:/storage/certificates:ro
     depends_on:
       - appwrite
+      - refine
     networks:
       - gateway
       - appwrite
@@ -60,15 +61,15 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.constraint-label-stack=appwrite"
-      - "traefik.docker.network=appwrite"
+      - "traefik.docker.network=appwrite_appwrite"
       - "traefik.http.services.appwrite_api.loadbalancer.server.port=80"
-      #http
+      # http
       - traefik.http.routers.appwrite_api_http.entrypoints=appwrite_web
-      - traefik.http.routers.appwrite_api_http.rule=PathPrefix(`/`)
+      - traefik.http.routers.appwrite_api_http.rule=(Host(`console.mydomain.tld`) && PathPrefix(`/`)) || (Host(`mydomain.tld`) && PathPrefix(`/.well-known/acme-challenge/`))
       - traefik.http.routers.appwrite_api_http.service=appwrite_api
       # https
       - traefik.http.routers.appwrite_api_https.entrypoints=appwrite_websecure
-      - traefik.http.routers.appwrite_api_https.rule=PathPrefix(`/`)
+      - traefik.http.routers.appwrite_api_https.rule=(Host(`console.mydomain.tld`) && PathPrefix(`/`)) || (Host(`mydomain.tld`) && PathPrefix(`/v1/`))
       - traefik.http.routers.appwrite_api_https.service=appwrite_api
       - traefik.http.routers.appwrite_api_https.tls=true
     volumes:
@@ -177,6 +178,29 @@ services:
       - _APP_GRAPHQL_MAX_COMPLEXITY
       - _APP_GRAPHQL_MAX_DEPTH
 
+  refine:
+    container_name: refine
+    build:
+      context: ../myapp-refine/
+    networks:
+      - appwrite
+    ports:
+      - 9502:8080
+    labels:
+      - "traefik.enable=true"
+      - "traefik.constraint-label-stack=appwrite"
+      - "traefik.docker.network=appwrite_appwrite"
+      - "traefik.http.services.appwrite.loadbalancer.server.port=8080"
+      # http
+      - traefik.http.routers.refine_http.entrypoints=appwrite_web
+      - traefik.http.routers.refine_http.rule=Host(`mydomain.tld`) && PathPrefix(`/`)
+      - traefik.http.routers.refine_http.service=appwrite
+      # https
+      - traefik.http.routers.refine_https.entrypoints=appwrite_websecure
+      - traefik.http.routers.refine_https.rule=Host(`mydomain.tld`) && PathPrefix(`/`)
+      - traefik.http.routers.refine_https.service=appwrite
+      - traefik.http.routers.refine_https.tls=true
+
   appwrite-realtime:
     entrypoint: realtime
     <<: *x-logging
@@ -188,15 +212,15 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.constraint-label-stack=appwrite"
-      - "traefik.docker.network=appwrite"
+      - "traefik.docker.network=appwrite_appwrite"
       - "traefik.http.services.appwrite_realtime.loadbalancer.server.port=80"
       #ws
       - traefik.http.routers.appwrite_realtime_ws.entrypoints=appwrite_web
-      - traefik.http.routers.appwrite_realtime_ws.rule=PathPrefix(`/v1/realtime`)
+      - traefik.http.routers.appwrite_realtime_ws.rule=Host(`console.mydomain.tld`) && PathPrefix(`/v1/realtime`)
       - traefik.http.routers.appwrite_realtime_ws.service=appwrite_realtime
       # wss
       - traefik.http.routers.appwrite_realtime_wss.entrypoints=appwrite_websecure
-      - traefik.http.routers.appwrite_realtime_wss.rule=PathPrefix(`/v1/realtime`)
+      - traefik.http.routers.appwrite_realtime_wss.rule=Host(`console.mydomain.tld`) && PathPrefix(`/v1/realtime`)
       - traefik.http.routers.appwrite_realtime_wss.service=appwrite_realtime
       - traefik.http.routers.appwrite_realtime_wss.tls=true
       - traefik.http.routers.appwrite_realtime_wss.tls.certresolver=dns
@@ -607,36 +631,36 @@ services:
       - _APP_MAINTENANCE_RETENTION_AUDIT
       - _APP_MAINTENANCE_RETENTION_USAGE_HOURLY
 
-  appwrite-usage:
-    entrypoint: usage
-    <<: *x-logging
-    container_name: appwrite-usage
-    image: appwrite-dev
-    networks:
-      - appwrite
-    volumes:
-      - ./app:/usr/src/code/app
-      - ./src:/usr/src/code/src
-    depends_on:
-      - influxdb
-      - mariadb
-    environment:
-      - _APP_ENV
-      - _APP_OPENSSL_KEY_V1
-      - _APP_DB_HOST
-      - _APP_DB_PORT
-      - _APP_DB_SCHEMA
-      - _APP_DB_USER
-      - _APP_DB_PASS
-      - _APP_INFLUXDB_HOST
-      - _APP_INFLUXDB_PORT
-      - _APP_USAGE_AGGREGATION_INTERVAL
-      - _APP_REDIS_HOST
-      - _APP_REDIS_PORT
-      - _APP_REDIS_USER
-      - _APP_REDIS_PASS
-      - _APP_LOGGING_PROVIDER
-      - _APP_LOGGING_CONFIG
+#  appwrite-usage:
+#    entrypoint: usage
+#    <<: *x-logging
+#    container_name: appwrite-usage
+#    image: appwrite-dev
+#    networks:
+#      - appwrite
+#    volumes:
+#      - ./app:/usr/src/code/app
+#      - ./src:/usr/src/code/src
+#    depends_on:
+#      - influxdb
+#      - mariadb
+#    environment:
+#      - _APP_ENV
+#      - _APP_OPENSSL_KEY_V1
+#      - _APP_DB_HOST
+#      - _APP_DB_PORT
+#      - _APP_DB_SCHEMA
+#      - _APP_DB_USER
+#      - _APP_DB_PASS
+#      - _APP_INFLUXDB_HOST
+#      - _APP_INFLUXDB_PORT
+#      - _APP_USAGE_AGGREGATION_INTERVAL
+#      - _APP_REDIS_HOST
+#      - _APP_REDIS_PORT
+#      - _APP_REDIS_USER
+#      - _APP_REDIS_PASS
+#      - _APP_LOGGING_PROVIDER
+#      - _APP_LOGGING_CONFIG
 
   appwrite-schedule:
     entrypoint: schedule
@@ -711,24 +735,24 @@ services:
   #   volumes:
   #     - appwrite-uploads:/storage/uploads
 
-  influxdb:
-    image: appwrite/influxdb:1.5.0
-    container_name: appwrite-influxdb
-    <<: *x-logging
-    networks:
-      - appwrite
-    volumes:
-      - appwrite-influxdb:/var/lib/influxdb:rw
+ # influxdb:
+ #   image: appwrite/influxdb:1.5.0
+ #   container_name: appwrite-influxdb
+ #   <<: *x-logging
+ #   networks:
+ #     - appwrite
+ #   volumes:
+ #     - appwrite-influxdb:/var/lib/influxdb:rw
 
-  telegraf:
-    image: appwrite/telegraf:1.4.0
-    container_name: appwrite-telegraf
-    <<: *x-logging
-    networks:
-      - appwrite
-    environment: 
-      - _APP_INFLUXDB_HOST
-      - _APP_INFLUXDB_PORT
+ # telegraf:
+ #   image: appwrite/telegraf:1.4.0
+ #   container_name: appwrite-telegraf
+ #   <<: *x-logging
+ #   networks:
+ #     - appwrite
+ #   environment: 
+ #     - _APP_INFLUXDB_HOST
+ #     - _APP_INFLUXDB_PORT
 
   # Dev Tools Start ------------------------------------------------------------------------------------------
   # 
@@ -829,7 +853,7 @@ services:
     ports:
       - "9509:3000"
     environment:
-      - SERVER_URL=http://localhost/v1/graphql
+      - SERVER_URL=${_APP_API_HOST_HTTPS}v1/graphql
 
 
   # Dev Tools End   ------------------------------------------------------------------------------------------

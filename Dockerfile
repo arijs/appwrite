@@ -24,8 +24,10 @@ ARG VITE_CONSOLE_MODE
 ENV VITE_GA_PROJECT=$VITE_GA_PROJECT
 ENV VITE_CONSOLE_MODE=$VITE_CONSOLE_MODE
 
-RUN npm ci
-RUN npm run build
+# I build the code in my machine and upload the compiled dist
+# The server is too weak and can't handle the build
+# RUN npm ci
+# RUN npm run build
 
 FROM php:8.0.18-cli-alpine3.15 as compile
 
